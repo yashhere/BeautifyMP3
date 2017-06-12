@@ -1,0 +1,109 @@
+{  
+   'release-group':{  
+      'type':'Soundtrack',
+      'primary-type':'Album',
+      'id':'90a8152a-29aa-440a-a783-faf8bf435be3',
+      'secondary-type-list':[  
+         'Soundtrack'
+      ]
+   },
+   'medium-list':[  
+      {  
+         'track-list':[  
+
+         ],
+         'track-count':11,
+         'disc-list':[  
+
+         ],
+         'format':'Digital Media',
+         'disc-count':0
+      }
+   ],
+   'country':'IN',
+   'barcode':'',
+   'packaging':'None',
+   'id':'2036808f-d484-4d00-b8f3-819e344bb131',
+   'artist-credit':[  
+      {  
+         'artist':{  
+            'name':'Mithoon',
+            'id':'7f74ac10-e2f0-480a-be9b-82264d2078a9',
+            'disambiguation':'Indian composer and playback singer',
+            'sort-name':'Mithoon'
+         }
+      },
+      '/',
+      {  
+         'artist':{  
+            'name':'Tanishk Bagchi',
+            'id':'2eeb1326-b91e-470f-b210-d07b54f5334a',
+            'sort-name':'Bagchi, Tanishk'
+         }
+      },
+      '/',
+      {  
+         'artist':{  
+            'name':'Rishi Rich',
+            'id':'9b52b90b-9858-4463-b20d-7e00480c4714',
+            'sort-name':'Rishi Rich'
+         }
+      },
+      '/',
+      {  
+         'artist':{  
+            'name':'Farhan Saeed',
+            'id':'78af11d1-d351-4229-ad79-1112068cb1ab',
+            'sort-name':'Saeed, Farhan'
+         }
+      },
+      '/',
+      {  
+         'artist':{  
+            'name':'Ami Mishra',
+            'id':'cf9f2995-3a44-4bf3-b4e5-7847c68be644',
+            'sort-name':'Mishra, Ami'
+         }
+      },
+      '/',
+      {  
+         'artist':{  
+            'name':'Rahul Mishra',
+            'id':'9202f366-c50d-48b6-a069-47f24b26a3d1',
+            'sort-name':'Rahul Mishra'
+         }
+      }
+   ],
+   'release-event-list':[  
+      {  
+         'area':{  
+            'name':'India',
+            'iso-3166-1-code-list':[  
+               'IN'
+            ],
+            'id':'d31a9a15-537f-3669-ad53-25753ddd2772',
+            'sort-name':'India'
+         },
+         'date':'2017-04-28'
+      }
+   ],
+   'ext:score':'100',
+   'text-representation':{  
+      'language':'eng',
+      'script':'Latn'
+   },
+   'date':'2017-04-28',
+   'medium-count':1,
+   'artist-credit-phrase':'Mithoon/Tanishk Bagchi/Rishi Rich/Farhan Saeed/Ami Mishra/Rahul Mishra',
+   'title':'Half Girlfriend',
+   'label-info-list':[  
+      {  
+         'label':{  
+            'name':'Zee Music',
+            'id':'b0d52317-46e4-4208-98f3-926f1a67397b'
+         }
+      }
+   ],
+   'medium-track-count':11,
+   'status':'Official'
+}

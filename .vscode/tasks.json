@@ -1,0 +1,7 @@
+{
+    "version": "0.1.0",
+    "command": "/home/yash/miniconda3/envs/music-tagger/bin/python3.5",
+    "isShellCommand": true,
+    "args": ["${file}"],
+    "showOutput": "always"
+}

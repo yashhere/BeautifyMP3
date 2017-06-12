@@ -5,6 +5,7 @@ certifi==2017.4.17
 chardet==3.0.4
 eyeD3==0.8
 idna==2.5
+musicbrainzngs==0.6
 musictools==2.1.4
 mutagen==1.38
 packaging==16.8
