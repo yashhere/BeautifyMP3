@@ -1,50 +1,36 @@
 import musicbrainzngs as m
-import sys
-
-
-def show_release_details(rel):
-
-    if rel['title'] != 'Half Girlfriend':
-        return
-
-    """Print some details about a release dictionary to stdout.
-    """
-    # "artist-credit-phrase" is a flat string of the credited artists
-    # joined with " + " or whatever is given by the server.
-    # You can also work with the "artist-credit" list manually.
-
-    print("{}, by {}".format(rel['title'], rel["artist-credit-phrase"]))
-    if 'date' in rel:
-        print("Released {} ({})".format(rel['date'], rel['status']))
-    print("MusicBrainz ID: {}".format(rel['id']))
+import sys, eyed3
 
 
 def main():
     m.set_useragent(
         "RepairMusicMetadata", "0.1", "https://yashagarwal.me")
-    # print(m.get_label_by_id("aab2e720-bdd2-4565-afc2-460743585f16"))
 
-    result = m.search_releases(release='Half Girlfriend',
-                               limit=5)
+    music_path = "/home/yash/bf.mp3"
+    file = eyed3.load(music_path)
 
-    p = m.search_releases("Raabta")
-    print(p)
-    # if not result['release-list']:
-    #     sys.exit("no release found")
-    # for (idx, release) in enumerate(result['release-list']):
-    #     print("match #{}:".format(idx + 1))
-    #     release_id = release['id']
-    #     # type(release_id)
-    #     print(release)
-    # data = m.get_image_list(release_id)
+    artist_name = file.tag.artist
+    title = file.tag.title
+    album = file.tag.album
 
-    # print(data)
-    # for image in data["images"]:
-    #     if "Front" in image["types"] and image["approved"]:
-    #         print("%s is an approved front image!" %
-    #               image["thumbnails"]["large"])
+    result = m.search_recordings(recording=title, country="IN", artist=artist_name, release=album)
+    # print(result)
+
+    for query in result['recording-list']:
+        if(query['ext:score'] == "100"):
+            # print(query['release-list'][0]['title'])
+            # area = query['release-list'][0]['release-event-list'][0]['area']['name']
+            # print(area)
+            if(query['release-list'][0]['title'] == album):
+                id = query['release-list'][0]['medium-list'][0]['track-list'][0]['id']
+                print(id)
+            else:
+                print("Not Found")
+    #         print(id)
+    #         x = m.get_recording_by_id(id)
+    #         print(x)
     #         break
-    #         print()
+    #     print(release)
 
 
 if __name__ == "__main__":
