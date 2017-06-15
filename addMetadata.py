@@ -12,6 +12,7 @@ def improve_song_names(songs):
     blacklistWords = text_file.read().splitlines()
     blacklistWords = [word.lower() for word in blacklistWords]
 
+    improved_names = []
     for song in songs:
         searchText = song[0:-4]
         remove_digits = searchText.maketrans('', '', digits)
@@ -19,10 +20,14 @@ def improve_song_names(songs):
         for word in song[0:-4].split(' '):
             if word.lower() in blacklistWords:
                 searchText = searchText.replace(word, '')
-        print(searchText)
+
+        improved_names.append(searchText)
+
+    return improved_names
 
 
 def get_metadata_acoustid(song):
+
     API_KEY = 'GkQibmzT1u'
     try:
         results = acoustid.match(API_KEY, song)
@@ -35,20 +40,18 @@ def get_metadata_acoustid(song):
     except acoustid.WebServiceError as exc:
         print("web service request failed:", exc.message, file=sys.stderr)
         sys.exit(1)
+    except acoustid.FingerprintSubmissionError:
+        print("Error")
 
-    # for result in results:
-    #     print(result)
     first = True
-    for score, rid, title, artist in results:
+    for result in results:
         if first:
             first = False
         else:
-            return title, artist
-            # print()
-        # print('%s - %s' % (artist, title))
-        # print('http://musicbrainz.org/recording/%s' % rid)
-        # print('Score: %i%%' % (int(score * 100)))
-        # break
+            print(result)
+
+    if first is True:
+        print("No Data found for " + song + " .... Skipping it")
 
 
 def get_metadata_musicbrainz(song):
@@ -68,29 +71,29 @@ def get_metadata_discogs(song_name):
     d = discogs.Client('ExampleApplication/0.1',
                        user_token="mbNSnSrqdyJOKorCDBXjzzeYNhgulysWNJbwgBmk")
     results = d.search(song_name, type="release")
-    # print(results.page(1))
     first_result = results.page(1)[0]
 
-    # artist = first_result.artists[0].name
     title = first_result.title
 
     print(dir(first_result.artists[0]))
     print(title)
     print(first_result.artists[0].name)
-    # print(title, artist)
 
 
 def main():
     files = list_files()
-    # title, artist = get_metadata_acoustid(
-    # "21. Jonas Blue - By Your Side (Feat Raye).mp3")
 
     # title, artist =
     # get_metadata_discogs(
     #     "Jonas Blue - By Your Side (Feat Raye)")
 
-    improve_song_names(files)
-    # print(title, artist)
+    # files = improve_song_names(files)
+    for file in files:
+        print("-------------" + file + "------------------")
+        print()
+        get_metadata_acoustid(file)
+        print()
+    print(files)
 
 
 if __name__ == "__main__":
