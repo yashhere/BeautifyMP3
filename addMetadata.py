@@ -1,38 +1,62 @@
-import musicbrainzngs as m
 import sys
-from mutagen.id3 import ID3
-from mutagen import File
 import os
 import mutagen
 from os.path import basename
-import spotipy
+import acoustid
+import discogs_client as discogs
+from string import digits
 
-def improve_song_name(song):
-    return song
+
+def improve_song_names(songs):
+    text_file = open("blacklist.txt", "r")
+    blacklistWords = text_file.read().splitlines()
+    blacklistWords = [word.lower() for word in blacklistWords]
+
+    for song in songs:
+        searchText = song[0:-4]
+        remove_digits = searchText.maketrans('', '', digits)
+        searchText = searchText.translate(remove_digits)
+        for word in song[0:-4].split(' '):
+            if word.lower() in blacklistWords:
+                searchText = searchText.replace(word, '')
+        print(searchText)
 
 
-def get_metadata(song):
-    spotify = spotipy.Spotify()
-    results = spotify.search(song_name, limit=1)
+def get_metadata_acoustid(song):
+    API_KEY = 'GkQibmzT1u'
+    try:
+        results = acoustid.match(API_KEY, song)
+    except acoustid.NoBackendError:
+        print("chromaprint library/tool not found", file=sys.stderr)
+        sys.exit(1)
+    except acoustid.FingerprintGenerationError:
+        print("fingerprint could not be calculated", file=sys.stderr)
+        sys.exit(1)
+    except acoustid.WebServiceError as exc:
+        print("web service request failed:", exc.message, file=sys.stderr)
+        sys.exit(1)
 
-    results = results['tracks']['items'][0]  # Find top result
-    album = results['album']['name']  # Parse json dictionary
-    artist = results['album']['artists'][0]['name']
-    song_title = results['name']
-    album_art = results['album']['images'][0]['url']
+    # for result in results:
+    #     print(result)
+    first = True
+    for score, rid, title, artist in results:
+        if first:
+            first = False
+        else:
+            return title, artist
+            # print()
+        # print('%s - %s' % (artist, title))
+        # print('http://musicbrainz.org/recording/%s' % rid)
+        # print('Score: %i%%' % (int(score * 100)))
+        # break
 
-    return artist, album, song_title, album_art
+
+def get_metadata_musicbrainz(song):
+    return
+
 
 def add_metadata(files):
-    # tags = File("/home/yash/Desktop/music-tagger/sample_songs/02. DJ Snake - Let Me Love You (Feat. Justin Bieber).mp3")
-    # print(tags)
-    for file in files:
-        print(file)
-        tags = File(file)
-        song_name = basename(file[:-4])
-        song_name = improve_song_name(song_name)
-
-        title, artist, album, cover_art = get_metadata(song_name)
+    return
 
 
 def list_files():
@@ -40,20 +64,33 @@ def list_files():
     return [f for f in os.listdir('.') if f.endswith('.mp3')]
 
 
-def main():
-    m.set_useragent(
-        "RepairMusicMetadata", "0.1", "https://yashagarwal.me")
+def get_metadata_discogs(song_name):
+    d = discogs.Client('ExampleApplication/0.1',
+                       user_token="mbNSnSrqdyJOKorCDBXjzzeYNhgulysWNJbwgBmk")
+    results = d.search(song_name, type="release")
+    # print(results.page(1))
+    first_result = results.page(1)[0]
 
+    # artist = first_result.artists[0].name
+    title = first_result.title
+
+    print(dir(first_result.artists[0]))
+    print(title)
+    print(first_result.artists[0].name)
+    # print(title, artist)
+
+
+def main():
     files = list_files()
-    get_metadata("36. Galantis - No Money")
-    # add_metadata(files)
-    # result = m.search_releases("36. Galantis - No Money")
-    # print(result)
-    # for rel in result['release-list']:
-    #     print("{}, by {}".format(rel['title'], rel["artist-credit-phrase"]))
-    #     if 'date' in rel:
-    #         print("Released {} ({})".format(rel['date'], rel['status']))
-    #     print("MusicBrainz ID: {}".format(rel['id']))
+    # title, artist = get_metadata_acoustid(
+    # "21. Jonas Blue - By Your Side (Feat Raye).mp3")
+
+    # title, artist =
+    # get_metadata_discogs(
+    #     "Jonas Blue - By Your Side (Feat Raye)")
+
+    improve_song_names(files)
+    # print(title, artist)
 
 
 if __name__ == "__main__":
