@@ -3,12 +3,14 @@ import os
 from os.path import basename
 import acoustid
 import discogs_client as discogs
-from string import digits
 import musicbrainzngs as m
 import eyed3
 from bs4 import BeautifulSoup
 import requests
 import json
+import spotipy
+import spotipy.oauth2 as oauth2
+import re
 
 
 def improve_song_names(songs):
@@ -16,11 +18,13 @@ def improve_song_names(songs):
     blacklistWords = text_file.read().splitlines()
     blacklistWords = [word.lower() for word in blacklistWords]
 
+    reg_exp = 's/^\d\d //'
     improved_names = []
     for song in songs:
+        song = song.strip()
+        song = song.lstrip("0123456789.- ")
+        # re.sub(reg_exp, '', song)
         searchText = song[0:-4]
-        # remove_digits = searchText.maketrans('', '', digits)
-        # searchText = searchText.translate(remove_digits)
         for word in song[0:-4].split(' '):
             if word.lower() in blacklistWords:
                 searchText = searchText.replace(word, '')
@@ -150,15 +154,29 @@ def add_metadata(file_name, album_art):
     audiofile.tag.save()
 
 
+# def get_metadata_spotify(song):
+#     spotify.search(song, limit=1)['tracks']['items'][0]
+#     return
+
+
 def main():
+    auth = oauth2.SpotifyClientCredentials(
+        client_id='622a0e16a4914e3eadc2a37b4a134f1e',
+        client_secret='6fe008a8b7754954a58a9849fa3172df')
+    token = auth.get_access_token()
+    spotify = spotipy.Spotify(auth=token)
+
     files = list_files()
+    improved_name = improve_song_names(files)
+
+    # get_metadata_spotify(files[1])
 
     # valid, score, rid, title, artist, albumart = get_metadata_acoustid(
     #     "35. Mike Posner - I Took a Pill in Ibiza (SeeB Remix).mp3")
 
     # print(valid, score, rid, title, artist, albumart)
-    add_album_art(
-        "Badi.mp3", "")
+    # add_album_art(
+    #     "Badi.mp3", "")
     # for file_name in files:
     #     print("-------------" + file_name + "------------------")
     #     print()
