@@ -5,9 +5,10 @@ import acoustid
 import discogs_client as discogs
 from string import digits
 import musicbrainzngs as m
-from mutagen.id3 import ID3, APIC, _util
-from mutagen.mp3 import EasyMP3
+import eyed3
 from bs4 import BeautifulSoup
+import requests
+import json
 
 
 def improve_song_names(songs):
@@ -29,6 +30,31 @@ def improve_song_names(songs):
     return improved_names
 
 
+def get_soup(url, headers):
+    r = requests.get(url, headers=headers)
+    soup = BeautifulSoup(r.text, 'html.parser')
+    return soup
+
+
+def get_albumart_google(song_name):
+    url = "https://www.google.co.in/search?q=" + \
+        song_name.replace(" ", "_") + "&source=lnms&tbm=isch"
+
+    HEADERS = {
+        'User-Agent': "Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.134 Safari/537.36"
+    }
+
+    soup = get_soup(url, HEADERS)
+    ActualImages = []
+    for a in soup.find_all("div", {"class": "rg_meta"}):
+        link, Type = json.loads(a.text)["ou"], json.loads(a.text)["ity"]
+        return link
+        print(link)
+        ActualImages.append((link, Type))
+
+    return ActualImages
+
+
 def get_metadata_acoustid(song):
     API_KEY = 'GkQibmzT1u'
     try:
@@ -46,20 +72,28 @@ def get_metadata_acoustid(song):
         print("Error")
 
     first = True
+    scoreMax = 0
+
     for result in results:
         if first:
             first = False
         else:
-            print(result)
+            # print(result)
+            if(result[0] > scoreMax):
+                scoreMax = result[0]
+            else:
+                pass
             score, rid, title, artist = result[0], result[1], result[2], result[3]
             valid = True
+            albumart = get_albumart_google(title + " - " + artist)
+            break
 
     if first is True:
         print("No Data found for " + song + " .... Skipping it")
+        score = rid = title = artist = albumart = None
         valid = False
-        score, rid, title, artist = None, None, None, None
 
-    return valid, score, rid, title, artist
+    return valid, score, rid, title, artist, albumart
 
 
 def get_metadata_musicbrainz(rid, artist, title):
@@ -75,11 +109,6 @@ def get_metadata_musicbrainz(rid, artist, title):
     print(result)
 
 
-def add_metadata(file_name, rid, title, artist):
-
-    return
-
-
 def list_files():
     files = []
     return [f for f in os.listdir('.') if f.endswith('.mp3')]
@@ -92,29 +121,44 @@ def get_metadata_discogs(song_name):
     results = d.search(song_name, type="release")
     first_result = results.page(1)[0]
 
-    # print(first_result)
     title = first_result.title
 
-    # print(dir(first_result))
     print(title)
     print(first_result.artists[0].name)
     print(first_result.images[0])
 
 
+def add_metadata(file_name, album_art):
+    """
+    Add album_art in .mp3's tags
+    """
+
+    img = requests.get(
+        "https://i.ytimg.com/vi/7S0MWoXYH5k/maxresdefault.jpg", stream=True)
+    img = img.raw
+
+    audiofile = eyed3.load(file_name)
+    tag = audiofile.tag
+
+    tag.artist = "Alka Yagnik"
+    tag.album = "Lajja"
+    tag.title = "Badi Mushkil Baba Badi Mushkil"
+    tag.images.set(3, img.read(), "image/jpeg", u"Google image")
+    tag.lyrics.set(u""" """)
+
+    # write it back
+    audiofile.tag.save()
+
+
 def main():
     files = list_files()
 
-    # title, artist =
-    # get_metadata_discogs(
-    #     "Jonas Blue - By Your Side (Feat Raye)")
+    # valid, score, rid, title, artist, albumart = get_metadata_acoustid(
+    #     "35. Mike Posner - I Took a Pill in Ibiza (SeeB Remix).mp3")
 
-    # get_metadata_discogs(
-    #     "Maroon 5-Animals")
-    # valid, score, rid, title, artist = get_metadata_acoustid(
-    #     "18. Justin Timberlake - CAN'T STOP THE FEELING!.mp3")
-    # print(valid)
-    # print(score)
-    # print(files)
+    # print(valid, score, rid, title, artist, albumart)
+    add_album_art(
+        "Badi.mp3", "")
     # for file_name in files:
     #     print("-------------" + file_name + "------------------")
     #     print()
@@ -125,17 +169,20 @@ def main():
     #     print()
     #     break
 
-    files = improve_song_names(files)
+    # files = improve_song_names(files)
     # print(files)
-    count = 0
-    for file_name in files:
-        print("-------------" + file_name + "------------------")
-        print()
-        get_metadata_discogs(file_name)
-        count += 1
-        if count > 5:
-            break
-        print()
+    # count = 0
+    # for file_name in files:
+    #     print("-------------" + file_name + "------------------")
+    #     print()
+    #     get_metadata_discogs(file_name)
+    #     count += 1
+    #     if count > 5:
+    #         break
+    #     print()
+
+    # get_albumart_google(
+    #     "Mike Posner - I Took a Pill in Ibiza (acoustic)")
 
 
 if __name__ == "__main__":
