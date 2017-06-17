@@ -1,8 +1,7 @@
-# TODO LIST
-
-Basic useful feature list:
-
- * implement song metadata fetch from musicbrainz/spotify/discogs/wikipedia/acoustid
- * use mutagen instead of eyed3
- * implement lyrics fetcher from genius/metrolyrics
- * add download functionality from youtube
+## TODO
+- [ ] Add download functionality from youtube
+- [ ] add support for last.fm and soundcloud if spotify fails
+- [ ] add support for metrolyrics and other lyrics service if genius api fails
+- [ ] add support for searching with existing id3 tags if searching with name fails
+- [ ] somehow find a way to properly synchronize the lyrics with sound if possible
+- [ ] add support for other file types(aac, flac etc)
