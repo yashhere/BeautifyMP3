@@ -10,6 +10,7 @@ ______________________________________________________________
 
 
 import sys
+import os
 from os import chdir, listdir, rename, walk, path, environ
 from os.path import basename, dirname, realpath
 import spotipy
@@ -61,48 +62,45 @@ def add_config_keys():
 
     if GENIUS_KEY == '<insert genius key here>':
         genius_key = input('Enter Genius Client Access token : ')
-        CONFIG['keys']['genius_key'] = genius_key
+        CONFIG['keys']['genius_key'] = str(genius_key)
 
     if SP_SECRET == '<insert spotify client secret here>':
         sp_secret = input('Enter Spotify Secret token : ')
-        CONFIG['keys']['spotify_client_secret'] = sp_secret
+        CONFIG['keys']['spotify_client_secret'] = str(sp_secret)
 
     if SP_ID == '<insert spotify client id here>':
         sp_id = input('Enter Spotify Client ID : ')
-        CONFIG['keys']['spotify_client_id'] = sp_id
+        CONFIG['keys']['spotify_client_id'] = str(sp_id)
 
     with open(config_path, 'w') as configfile:
         CONFIG.write(configfile)
 
 
-def improve_song_names(songs):
+def improve_song_name(song):
     '''
         removes all unwanted words and numbers from file name so that the spotify search results can be improved
 
         removes all numbers from beginning, then strip all punctuation marks from the string, then remove words in word_filters, then remove unwanted space
     '''
 
-    char_filters = "()[]{}-:_/=+\"\'"
+    char_filters = "()[]{}-:_/=!+\"\'"
     word_filters = ('lyrics', 'lyric', 'by', 'video', 'official', 'hd', 'dirty', 'with', 'lyrics', 'feat', 'original', 'mix',
                     'www', 'com', 'mp3', 'audio', 'remixed', 'remix', 'full', 'version', 'music', 'hq', 'uploaded', 'explicit')
 
     reg_exp = 's/^\d\d //'
-    improved_names = []
-    for song in songs:
-        song = song.strip()
-        song = song.lstrip("0123456789.- ")
-        # re.sub(reg_exp, '', song)
-        song = song[0:-4]
-        song = ''.join(
-            map(lambda c: " " if c in char_filters else c, song))
+    song = song.strip()
+    song = song.lstrip("0123456789.- ")
+    # re.sub(reg_exp, '', song)
+    song = song[0:-4]
+    song = ''.join(
+        map(lambda c: " " if c in char_filters else c, song))
 
-        song = re.sub('|'.join(re.escape(key) for key in word_filters),
-                      "", song, flags=re.IGNORECASE)
+    song = re.sub('|'.join(re.escape(key) for key in word_filters),
+                  "", song, flags=re.IGNORECASE)
 
-        song = ' '.join(song.split())
-        improved_names.append(song.strip())
+    song = ' '.join(song.split()).strip()
 
-    return improved_names
+    return song
 
 
 def get_song_name(title, artist):
@@ -129,10 +127,10 @@ def get_lyrics_genius(song_name):
     try:
         song_info = json['response']['hits'][0]['result']['api_path']
     except KeyError:
-        print("Could not find lyrics")
+        print("Could not find lyrics for " + song_name)
         return None
     except IndexError:
-        print("Could not find lyrics")
+        print("Could not find lyrics for " + song_name)
         return None
 
     song_url = base_url + song_info
@@ -173,7 +171,6 @@ def get_metadata_spotify(spotify, song_name):
 
     metadata['release_date'] = album_meta_tags['release_date']
     try:
-        metadata['total'] = album_meta_tags['tracks']['total']
         metadata['genre'] = titlecase(album_meta_tags['genres'][0])
     except IndexError:
         try:
@@ -188,10 +185,13 @@ def get_metadata_spotify(spotify, song_name):
     metadata['disc_num'] = meta_tags['disc_number']
 
     metadata['albumart'] = meta_tags['album']['images'][0]['url']
-    metadata['lyrics'] = get_lyrics_genius(
-        get_song_name(metadata['title'], metadata['artist']))
 
-    print(metadata)
+    lyrics = get_lyrics_genius(get_song_name(
+        metadata['title'], metadata['artist']))
+
+    if lyrics is not None:
+        metadata['lyrics'] = lyrics
+
     return metadata
 
 
@@ -204,7 +204,7 @@ def list_files():
     return [f for f in listdir('.') if f.endswith('.mp3')]
 
 
-def set_metadata(file_name, metadata):
+def set_metadata(norename, rename_format, file_name, metadata):
     '''
         call eyed3 module to set mp3 song metadata as received from spotify
     '''
@@ -212,30 +212,44 @@ def set_metadata(file_name, metadata):
     audiofile = eyed3.load(file_name)
     tag = audiofile.tag
 
-    try:
-        tag.artist = metadata['artist']
-        tag.album_artist = metadata['album_artist']
-        tag.album = metadata['album']
-        tag.title = metadata['title']
+    if 'genre' in metadata:
         tag.genre = metadata['genre']
-        tag.track_num = metadata['track_num']
-        tag.release_date = metadata['release_date']
-        tag.disc_num = metadata['disc_num']
-        # tag.lyrics.set(metadata['lyrics'])
 
-        img = requests.get(
-            metadata['albumart'], stream=True)
-        img = img.raw
+    if 'lyrics' in metadata:
+        tag.lyrics.set(metadata['lyrics'])
 
-        albumart = img.read()
-        tag.images.set(3, albumart, 'image/jpeg')
+    img = requests.get(
+        metadata['albumart'], stream=True)
+    img = img.raw
 
-        tag.save(version=(2, 3, 0))
+    albumart = img.read()
+    tag.images.set(3, albumart, 'image/jpeg')
 
-    except:
-        return
+    tag.save(version=(2, 3, 0))
+
+    if not norename:
+        song_title = rename_format.format(
+            title=metadata['title'] + ' -',
+            artist=metadata['artist'] + ' -',
+            album=metadata['album'] + ' -')
+
+    song_title = song_title[:-1] if song_title.endswith('-') else song_title
+    song_title = ' '.join(song_title.split()).strip()
+    new_path = path.dirname(file_name) + '{}.mp3'.format(song_title)
+    rename(file_name, new_path)
 
     return
+
+
+def fix_music_files(spotify, files, norename, rename_format):
+    need_to_improve = []
+    for file_name in files:
+        metadata = get_metadata_spotify(spotify, improve_song_name(file_name))
+        if not metadata:
+            need_to_improve.append(file_name)
+        set_metadata(norename, rename_format, file_name, metadata)
+
+    return need_to_improve
 
 
 def main():
@@ -249,13 +263,13 @@ def main():
         description="{}".format(DESC), formatter_class=argparse.RawDescriptionHelpFormatter
     )
 
-    group = parser.add_mutually_exclusive_group(required=True)
+    # group = parser.add_mutually_exclusive_group(required=True)
 
-    group.add_argument('-d', '--dir', action="store", dest='repair_directory',
-                       help='give path of music files\' directory', default='.')
+    parser.add_argument('-d', '--dir', action="store", dest='repair_directory',
+                        help='give path of music files\' directory', default=os.getcwd())
 
-    group.add_argument('-s', '--song', action='store', dest='song_name',
-                       help='Only fix metadata of the file specified')
+    parser.add_argument('-s', '--song', action='store', dest='song_name',
+                        help='Only fix metadata of the file specified', default=None)
 
     parser.add_argument('-c', '--config', action='store_true', dest='config',
                         help="Add API Keys to config\n\n")
@@ -270,23 +284,30 @@ def main():
     args = parser.parse_args()
 
     repair_directory = args.repair_directory or '.'
+    song_name = args.song_name or None
     norename = args.norename or False
-    format = args.rename_format or '{title}'
+    rename_format = args.rename_format or '{title}'
     config = args.config
 
     if config:
         add_config_keys()
 
     auth = oauth2.SpotifyClientCredentials(
-        client_id=SP_ID, client_secret=SP_SECRET)
+        client_id="622a0e16a4914e3eadc2a37b4a134f1e", client_secret="6fe008a8b7754954a58a9849fa3172df")
     token = auth.get_access_token()
     spotify = spotipy.Spotify(auth=token)
 
-    files = list_files()
-    improved_name = improve_song_names(files)
+    files = []
 
-    metadata = get_metadata_spotify(
-        spotify, "Martin Garrix and Bebe Rexha In The Name of Love")
+    # if song_name is not None:
+    #     fix_music_files(spotify, files.append(
+    #         song_name), norename, rename_format)
+
+    # elif repair_directory:
+    chdir(repair_directory or '.')
+    files = list_files()
+    need_to_improve = fix_music_files(spotify, files, norename, rename_format)
+    print(need_to_improve)
 
 
 if __name__ == "__main__":
