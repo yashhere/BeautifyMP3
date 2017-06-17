@@ -10,6 +10,7 @@ ______________________________________________________________
 
 
 import sys
+import shutil
 import os
 from os import chdir, listdir, rename, walk, path, environ
 from os.path import basename, dirname, realpath
@@ -116,6 +117,7 @@ def get_lyrics_genius(song_name):
         calls genius.com api for getting the url of the song lyrics page then scrapes that page to fetch the lyrics
     '''
 
+    GENIUS_KEY = "iazjdOEEunvS_XOXhmJTcUzOsvrEjaNIftCKj7PLrgZjjWXiFTeoNHVmwYRDMkx9"
     base_url = "https://api.genius.com"
     headers = {'Authorization': 'Bearer %s' % (GENIUS_KEY)}
     search_url = base_url + "/search"
@@ -154,6 +156,7 @@ def get_metadata_spotify(spotify, song_name):
         call spotify.com api to get the metadata required, as much as possible
     '''
 
+    print("trying to find data on Spotify...")
     metadata = {}
     try:
         meta_tags = spotify.search(song_name, limit=1)['tracks']['items'][0]
@@ -179,6 +182,7 @@ def get_metadata_spotify(spotify, song_name):
             metadata['genre'] = titlecase(artist_meta_tags['genres'][0])
 
         except IndexError:
+            print("song genre could not be found.")
             pass
 
     metadata['track_num'] = meta_tags['track_number']
@@ -192,6 +196,7 @@ def get_metadata_spotify(spotify, song_name):
     if lyrics is not None:
         metadata['lyrics'] = lyrics
 
+    print()
     return metadata
 
 
@@ -204,11 +209,13 @@ def list_files():
     return [f for f in listdir('.') if f.endswith('.mp3')]
 
 
-def set_metadata(norename, rename_format, file_name, metadata):
+def set_metadata(file_name, metadata):
     '''
         call eyed3 module to set mp3 song metadata as received from spotify
     '''
 
+    print("setting metadata for " + file_name)
+    print()
     audiofile = eyed3.load(file_name)
     tag = audiofile.tag
 
@@ -227,6 +234,44 @@ def set_metadata(norename, rename_format, file_name, metadata):
 
     tag.save(version=(2, 3, 0))
 
+    # if not norename:
+    #     song_title = rename_format.format(
+    #         title=metadata['title'] + ' -',
+    #         artist=metadata['artist'] + ' -',
+    #         album=metadata['album'] + ' -')
+
+    # song_title = song_title[:-1] if song_title.endswith('-') else song_title
+    # song_title = ' '.join(song_title.split()).strip()
+
+    # print("renaming " + file_name + "to " + song_title)
+    # new_path = path.dirname(file_name) + '{}.mp3'.format(song_title)
+    # rename(file_name, new_path)
+
+    print()
+    return
+
+
+def fix_music_file(spotify, file_name, norename, rename_format):
+    print("------------------------------------------------------------------------")
+    print()
+    print()
+    print("Currently processing " + file_name)
+    metadata = get_metadata_spotify(spotify, improve_song_name(file_name))
+    if not metadata:
+        is_improvemet_needed = True
+        return is_improvemet_needed
+    else:
+        set_metadata(file_name, metadata)
+        is_improvemet_needed = False
+
+        rename_file = rename_to_format(
+            file_name, norename, rename_format, metadata)
+
+        shutil.move(rename_file, 'Music')
+        return is_improvemet_needed
+
+
+def rename_to_format(file_name, norename, rename_format, metadata):
     if not norename:
         song_title = rename_format.format(
             title=metadata['title'] + ' -',
@@ -235,19 +280,24 @@ def set_metadata(norename, rename_format, file_name, metadata):
 
     song_title = song_title[:-1] if song_title.endswith('-') else song_title
     song_title = ' '.join(song_title.split()).strip()
+
+    print("renaming " + file_name + "to " + song_title)
     new_path = path.dirname(file_name) + '{}.mp3'.format(song_title)
     rename(file_name, new_path)
-
-    return
+    return new_path
 
 
 def fix_music_files(spotify, files, norename, rename_format):
     need_to_improve = []
     for file_name in files:
-        metadata = get_metadata_spotify(spotify, improve_song_name(file_name))
-        if not metadata:
+        response = fix_music_file(spotify, file_name, norename, rename_format)
+
+        if response is True:
             need_to_improve.append(file_name)
-        set_metadata(norename, rename_format, file_name, metadata)
+
+        ("------------------------------------------------------------------------")
+        print()
+        print()
 
     return need_to_improve
 
@@ -299,15 +349,20 @@ def main():
 
     files = []
 
-    # if song_name is not None:
-    #     fix_music_files(spotify, files.append(
-    #         song_name), norename, rename_format)
+    if song_name is not None:
+        need_to_improve = fix_music_file(
+            spotify, song_name, norename, rename_format)
+        if need_to_improve is True:
+            print(song_name)
 
-    # elif repair_directory:
-    chdir(repair_directory or '.')
-    files = list_files()
-    need_to_improve = fix_music_files(spotify, files, norename, rename_format)
-    print(need_to_improve)
+    elif repair_directory:
+        chdir(repair_directory or '.')
+        if not os.path.exists("Music"):
+            os.makedirs("Music")
+        files = list_files()
+        need_to_improve = fix_music_files(
+            spotify, files, norename, rename_format)
+        print(need_to_improve)
 
 
 if __name__ == "__main__":
