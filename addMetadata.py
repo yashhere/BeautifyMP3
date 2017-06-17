@@ -37,6 +37,38 @@ def get_song_name(title, artist):
     return title + ' - ' + artist
 
 
+def get_lyrics_genius(song_name):
+    GENIUS_KEY = "TxvC3bwsONZ1lh3j8Idq-VFBXKk5SlwYoAyGwkWFvbqkJB8vwdMGV7b5Q4sJSTd2"
+    base_url = "https://api.genius.com"
+    headers = {'Authorization': 'Bearer %s' % (GENIUS_KEY)}
+    search_url = base_url + "/search"
+    data = {'q': song_name}
+
+    response = requests.get(search_url, data=data, headers=headers)
+    json = response.json()
+
+    try:
+        song_info = json['response']['hits'][0]['result']['api_path']
+    except KeyError:
+        print("Could not find lyrics")
+        return None
+
+    song_url = base_url + song_info
+    response = requests.get(song_url, headers=headers)
+    json = response.json()
+    song_path = json['response']['song']['path']
+    song_url = "http://genius.com" + song_path
+    page = requests.get(song_url)
+    html = BeautifulSoup(page.text, "html.parser")
+
+    # remove script tags that they put in the middle of the lyrics
+    [h.extract() for h in html('script')]
+
+    lyrics = html.find("div", class_="lyrics").get_text()
+    lyrics.replace('\n', ' ')
+    return lyrics
+
+
 def get_metadata_spotify(spotify, song_name):
     metadata = {}
     meta_tags = spotify.search(song_name, limit=1)['tracks']['items'][0]
@@ -65,8 +97,8 @@ def get_metadata_spotify(spotify, song_name):
     metadata['disc_num'] = meta_tags['disc_number']
 
     metadata['albumart'] = meta_tags['album']['images'][0]['url']
-    # metadata['lyrics'] = get_lyrics_genius(
-    #     get_song_name(metadata['title'], metadata['artist']))
+    metadata['lyrics'] = get_lyrics_genius(
+        get_song_name(metadata['title'], metadata['artist']))
 
     return metadata
 
