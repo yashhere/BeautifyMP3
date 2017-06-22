@@ -1,4 +1,4 @@
-<p align="center">
+<p align="left">
     <a href="https://github.com/yash2696/BeautifyMP3/LICENSE">
 		<img alt="License"  src="https://img.shields.io/github/license/mashape/apistatus.svg?style=flat-square"/>
 	</a>           
