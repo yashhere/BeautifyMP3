@@ -79,7 +79,7 @@ ______________________________________________________________
 optional arguments:
   -h, --help            show this help message and exit
   -d REPAIR_DIRECTORY, --dir REPAIR_DIRECTORY
-                        give path of music files\' directory
+                        give path of music files&#96; directory
   -s SONG_NAME, --song SONG_NAME
                         Only fix metadata of the file specified
   -c, --config          Add API Keys to config
