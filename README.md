@@ -96,6 +96,7 @@ optional arguments:
 - [ ] add support for searching with existing id3 tags if searching with name fails
 - [ ] somehow find a way to properly synchronize the lyrics with sound if possible
 - [ ] add support for other file types(aac, flac etc)
+- [ ] add support for hindi songs
 
 ## Contribute
 
