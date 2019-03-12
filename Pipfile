@@ -1,0 +1,24 @@
+[[source]]
+name = "pypi"
+url = "https://pypi.org/simple"
+verify_ssl = true
+
+[dev-packages]
+
+[packages]
+appdirs = "==1.4.3"
+beautifulsoup4 = "==4.6.0"
+bs4 = "==0.0.1"
+certifi = "==2017.4.17"
+chardet = "==3.0.4"
+idna = "==2.5"
+pyparsing = "==2.2.0"
+requests = "==2.17.3"
+six = "==1.10.0"
+spotipy = "==2.4.4"
+urllib3 = "==1.21.1"
+eyeD3 = "==0.8"
+titlecase = "*"
+
+[requires]
+python_version = "3.7"
